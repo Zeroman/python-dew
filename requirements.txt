@@ -1,0 +1,14 @@
+#numpy
+#pandas
+#pymongo===3.6.1
+#matplotlib
+#python-binance
+#websocket-client
+#ccxt
+#PyQt5
+#TA-lib
+#coinpaprika
+
+web3
+requests
+pygments
