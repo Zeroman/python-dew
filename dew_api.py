@@ -153,9 +153,9 @@ class DewApi():
         if order_ids is not None:
             params['orderId'] = ','.join([str(order_id) for order_id in order_ids])
         if start_time is not None:
-            params['startTime'] = time.strftime(start_time, '%Y-%m-%d %H:%M:%S')
+            params['startTime'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
         if end_time is not None:
-            params['endTime'] = time.strftime(end_time, '%Y-%m-%d %H:%M:%S')
+            params['endTime'] = end_time.strftime('%Y-%m-%d %H:%M:%S')
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
