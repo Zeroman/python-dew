@@ -14,6 +14,12 @@ class DewApi():
         self.key_store = key_store
         self.key_pwd = key_pwd
 
+    def _format_result(self, res):
+        obj = json.loads(res.text)
+        if obj['success']:
+            return obj['result']
+        return res.text
+
     def get_url(self, method):
         return 'https://api.dew.one/api/v1/' + method
 
@@ -50,40 +56,47 @@ class DewApi():
         sign = hashlib.md5(sign_str.encode(encoding='UTF-8')).hexdigest()
         params['sign'] = sign
 
+    def symbols(self):
+        url = self.get_url("fut/symbols")
+        params = {}
+        self.md5_sign(params)
+        res = requests.get(url, params=params)
+        return self._format_result(res)
+
     def accounts(self):
         url = self.get_url("accounts")
         params = {}
         self.md5_sign(params)
         res = requests.get(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def ticker(self, symbol):
         url = self.get_url("ticker")
         params = {'symbol': symbol}
         self.md5_sign(params)
         res = requests.get(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def positions(self, symbol):
         url = self.get_url("fut/positions")
         params = {'symbol': symbol}
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def depth(self, symbol):
         url = self.get_url("depth")
         params = {'symbol': symbol, 'size': 30}
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def get_orders(self, symbol, size=30):
         url = self.get_url("fut/orders")
         params = {'symbol': symbol, 'size': size}
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def order(self, symbol, is_open, is_short, num, price):
         url = self.get_url("fut/trade")
@@ -92,7 +105,7 @@ class DewApi():
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     # 开多
     def order_open_long(self, symbol, num, price):
@@ -116,7 +129,7 @@ class DewApi():
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def margin_call(self, symbol, position_id, deposit):
         url = self.get_url("fut/margin_call")
@@ -124,7 +137,7 @@ class DewApi():
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def margin_call_result(self, symbol, order_id):
         url = self.get_url("fut/margin_call_result")
@@ -132,15 +145,21 @@ class DewApi():
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
-    def fut_dones(self, symbol, order_ids):
+    def fut_dones(self, symbol, order_ids=None, start_time=None, end_time=None):
         url = self.get_url("fut/dones")
-        params = {'symbol': symbol, 'orderId': ','.join([str(order_id) for order_id in order_ids])}
+        params = {'symbol': symbol}
+        if order_ids is not None:
+            params['orderId'] = ','.join([str(order_id) for order_id in order_ids])
+        if start_time is not None:
+            params['startTime'] = time.strftime(start_time, '%Y-%m-%d %H:%M:%S')
+        if end_time is not None:
+            params['endTime'] = time.strftime(end_time, '%Y-%m-%d %H:%M:%S')
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
     def stop_loss(self, symbol, is_cancel, position_id, earn_price, loss_price, tick):
         url = self.get_url("fut/stop_loss")
@@ -158,7 +177,7 @@ class DewApi():
         self.eth_sign(params)
         self.md5_sign(params)
         res = requests.post(url, params=params)
-        return json.loads(res.text)
+        return self._format_result(res)
 
 
 def print_json(obj, color=True):
@@ -172,26 +191,3 @@ def print_json(obj, color=True):
             formatted_json.encode('UTF-8'), lexers.JsonLexer(),
             formatters.TerminalFormatter())
     print(formatted_json)
-
-
-def get_test_user_api():
-    apiKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    apiSecret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    keyStore = '{"version":3,"id":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","address":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","crypto":{"ciphertext":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","cipherparams":{"iv":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","n":262144,"r":8,"p":1},"mac":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}'
-    keyStorePwd = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    api = DewApi(apiKey, apiSecret, keyStore, keyStorePwd)
-    return api
-
-
-if __name__ == '__main__':
-    api = get_test_user_api()
-    symbol = "BTC-YX"
-    print_json(api.accounts())
-    print_json(api.ticker(symbol))
-    print_json(api.positions(symbol))
-    print_json(api.depth(symbol))
-    print_json(api.order_open_long(symbol, 1, 9000))
-    print_json(api.get_orders(symbol))
-    print_json(api.cancel_orders(symbol, [162462923, 162483767, 162467609]))
-    print_json(api.get_orders(symbol))
-
