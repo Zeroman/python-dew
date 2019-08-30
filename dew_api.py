@@ -77,9 +77,11 @@ class DewApi():
         res = requests.get(url, params=params)
         return self._format_result(res)
 
-    def positions(self, symbol):
+    def positions(self, symbol=None):
         url = self.get_url("fut/positions")
-        params = {'symbol': symbol}
+        params = {}
+        if symbol is not None:
+            params['symbol'] = symbol
         self.md5_sign(params)
         res = requests.post(url, params=params)
         return self._format_result(res)
