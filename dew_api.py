@@ -181,6 +181,46 @@ class DewApi():
         res = requests.post(url, params=params)
         return self._format_result(res)
 
+    def guess_history(self):
+        url = 'https://guess.biz.dew.one/pub/query/historys.jhtml'
+        params = {
+            'code': 'BTC-DEW-5m-20190831173000',
+            'page': 1,
+            'lang': 'zh_cn'
+        }
+        headers = {
+            "Dew-Dev": "Web:web.dew.com",
+            "Dew-Nw": "unknown",
+            "Dew-Sign": "",
+            "Dew-Spec": "1.0",
+            "Dew-Token": "",
+            "Dew-Uid": "0",
+            "Dew-Ver": "0.0.0",
+        }
+        res = requests.get(url, params=params, headers=headers)
+        return self._format_result(res)
+
+    def guess_category(self):
+        url = self.get_url("guess/category")
+        params = {}
+        self.md5_sign(params)
+        res = requests.get(url, params=params)
+        return self._format_result(res)
+
+    def guess_trade(self, symbol, currency, period, is_bull, num):
+        url = self.get_url("guess/trade")
+        params = {
+            'symbol': symbol,
+            'currency': currency,
+            'period': period,
+            'type': 'BULL' if is_bull else 'BEAR',
+            'num': num
+        }
+        self.eth_sign(params)
+        self.md5_sign(params)
+        res = requests.post(url, params=params)
+        return self._format_result(res)
+
 
 def print_json(obj, color=True):
     if isinstance(obj, str):
