@@ -1,6 +1,7 @@
 # coding=utf-8
-
 import json
+from datetime import datetime, timedelta
+
 import requests
 import time
 import hashlib
@@ -13,6 +14,15 @@ class DewApi():
         self.api_secret = api_secret
         self.key_store = key_store
         self.key_pwd = key_pwd
+        self._pub_headers = {
+            "Dew-Dev": "Web:web.dew.com",
+            "Dew-Nw": "unknown",
+            "Dew-Sign": "",
+            "Dew-Spec": "1.0",
+            "Dew-Token": "",
+            "Dew-Uid": "0",
+            "Dew-Ver": "0.0.0",
+        }
 
     def _format_result(self, res):
         obj = json.loads(res.text)
@@ -111,19 +121,19 @@ class DewApi():
 
     # 开多
     def order_open_long(self, symbol, num, price):
-        self.order(symbol, True, False, num, price)
+        return self.order(symbol, True, False, num, price)
 
     # 开空
     def order_open_short(self, symbol, num, price):
-        self.order(symbol, True, True, num, price)
+        return self.order(symbol, True, True, num, price)
 
     # 卖多
     def order_close_long(self, symbol, num, price):
-        self.order(symbol, False, False, num, price)
+        return self.order(symbol, False, False, num, price)
 
     # 卖空
     def order_close_short(self, symbol, num, price):
-        self.order(symbol, False, True, num, price)
+        return self.order(symbol, False, True, num, price)
 
     def cancel_orders(self, symbol, order_ids):
         url = self.get_url("fut/cancel")
@@ -181,23 +191,40 @@ class DewApi():
         res = requests.post(url, params=params)
         return self._format_result(res)
 
-    def guess_history(self):
-        url = 'https://guess.biz.dew.one/pub/query/historys.jhtml'
+    # start_time end_time单位是天，不建议时间跨度太大，resolution单位是分钟
+    def get_kline_data(self, code='BTC', start_time=None, end_time=None, resolution=1):
+        url = 'https://hq.biz.dew.one/pub/quotation-new/kdata.jhtml'
+        if start_time is None:
+            start_time = datetime.now()
+        if end_time is None:
+            end_time = start_time
         params = {
-            'code': 'BTC-DEW-5m-20190831173000',
-            'page': 1,
+            'code': code,
+            'resolution': resolution,
+            'startTime': int(start_time.timestamp()),
+            'endTime': int(end_time.timestamp()),
+            'market': "MATCH_QH",
+            'lang': 'en',
+            'reqType': 'INIT'
+        }
+        res = requests.get(url, params=params, headers=self._pub_headers)
+        return self._format_result(res)
+
+    def get_guess_data(self, symbol="BTC", currency='DEW', period='5m', end_time=None, page=1):
+        url = 'https://guess.biz.dew.one/pub/query/historys.jhtml'
+        if end_time is None:
+            end_time = datetime.now()
+        minutes = end_time.minute % 5
+        end_time -= timedelta(minutes=minutes)
+        date_str = end_time.strftime('%Y%m%d%H%M00')
+        params = {
+            # 'BTC-DEW-5m-20190831173000',
+            'code': "%s-%s-%s-%s" % (symbol, currency, period, date_str),
+            'page': page,
             'lang': 'zh_cn'
         }
-        headers = {
-            "Dew-Dev": "Web:web.dew.com",
-            "Dew-Nw": "unknown",
-            "Dew-Sign": "",
-            "Dew-Spec": "1.0",
-            "Dew-Token": "",
-            "Dew-Uid": "0",
-            "Dew-Ver": "0.0.0",
-        }
-        res = requests.get(url, params=params, headers=headers)
+        print_json(params)
+        res = requests.get(url, params=params, headers=self._pub_headers)
         return self._format_result(res)
 
     def guess_category(self):
