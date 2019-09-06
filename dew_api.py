@@ -14,6 +14,7 @@ class DewApi():
         self.api_secret = api_secret
         self.key_store = key_store
         self.key_pwd = key_pwd
+        self.api_lang = 'en'  # or zh_cn
         self._pub_headers = {
             "Dew-Dev": "Web:web.dew.com",
             "Dew-Nw": "unknown",
@@ -204,9 +205,19 @@ class DewApi():
             'startTime': int(start_time.timestamp()),
             'endTime': int(end_time.timestamp()),
             'market': "MATCH_QH",
-            'lang': 'en',
+            'lang': self.api_lang,
             'reqType': 'INIT'
         }
+        res = requests.get(url, params=params, headers=self._pub_headers)
+        return self._format_result(res)
+
+    def get_guess_tickers(self, period='5m'):
+        url = 'https://guess.biz.dew.one/pub/query/codes.jhtml'
+        params = {
+            'period': period,
+            'lang': self.api_lang,
+        }
+        # print_json(params)
         res = requests.get(url, params=params, headers=self._pub_headers)
         return self._format_result(res)
 
@@ -221,9 +232,9 @@ class DewApi():
             # 'BTC-DEW-5m-20190831173000',
             'code': "%s-%s-%s-%s" % (symbol, currency, period, date_str),
             'page': page,
-            'lang': 'zh_cn'
+            'lang': self.api_lang,
         }
-        print_json(params)
+        # print_json(params)
         res = requests.get(url, params=params, headers=self._pub_headers)
         return self._format_result(res)
 
