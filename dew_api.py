@@ -15,6 +15,7 @@ class DewApi():
         self.key_store = key_store
         self.key_pwd = key_pwd
         self.api_lang = 'en'  # or zh_cn
+        self.last_access_time = datetime.now()
         self._pub_headers = {
             "Dew-Dev": "Web:web.dew.com",
             "Dew-Nw": "unknown",
@@ -66,6 +67,11 @@ class DewApi():
         sign_str = self.get_sign_str(params, self.api_secret)
         sign = hashlib.md5(sign_str.encode(encoding='UTF-8')).hexdigest()
         params['sign'] = sign
+
+    def tonce(self):
+        url = self.get_url("tonce")
+        res = requests.get(url)
+        return self._format_result(res)
 
     def symbols(self):
         url = self.get_url("fut/symbols")
@@ -248,14 +254,36 @@ class DewApi():
     def guess_trade(self, symbol, currency, period, is_bull, num):
         url = self.get_url("guess/trade")
         params = {
-            'symbol': symbol,
-            'currency': currency,
+            'symbol': symbol.upper(),
+            'currency': currency.upper(),
             'period': period,
             'type': 'BULL' if is_bull else 'BEAR',
             'num': num
         }
         self.eth_sign(params)
         self.md5_sign(params)
+        # print_json(params)
+        res = requests.post(url, params=params)
+        return self._format_result(res)
+
+    # orders = [[symbol, currency, period, is_bull, num]...]
+    def guess_trade_batch(self, orders=[]):
+        url = self.get_url("guess/trade_batch")
+        _orders = []
+        for index, order in enumerate(orders):
+            _order = {
+                'index': index,
+                'symbol': order[0].upper(),
+                'currency': order[1].upper(),
+                'period': order[2],
+                'type': 'BULL' if order[3] else 'BEAR',
+                'num': order[4]
+            }
+            _orders.append(_order)
+        params = {orders: _orders}
+        self.eth_sign(params)
+        self.md5_sign(params)
+        # print_json(params)
         res = requests.post(url, params=params)
         return self._format_result(res)
 
