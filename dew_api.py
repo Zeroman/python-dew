@@ -272,7 +272,7 @@ class DewApi():
         _orders = []
         for index, order in enumerate(orders):
             _order = {
-                'index': index,
+                'index': index + 1,
                 'symbol': order[0].upper(),
                 'currency': order[1].upper(),
                 'period': order[2],
