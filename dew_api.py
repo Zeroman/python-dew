@@ -280,7 +280,7 @@ class DewApi():
                 'num': order[4]
             }
             _orders.append(_order)
-        params = {orders: _orders}
+        params = {"orders": _orders}
         self.eth_sign(params)
         self.md5_sign(params)
         # print_json(params)
