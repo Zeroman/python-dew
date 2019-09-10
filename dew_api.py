@@ -44,13 +44,15 @@ class DewApi():
 
         sign_item = []
         for key in sorted(params):
-            sign_item.append('%s=%s' % (key, params[key]))
+            value = params[key]
+            sign_item.append('%s=%s' % (key, value))
         if api_secret is not None:
             sign_item.append("secretKey=%s" % api_secret)
         return '&'.join(sign_item)
 
     def eth_sign(self, params):
         sign_str = self.get_sign_str(params, None)
+        print(sign_str)
         message = Web3.toHex(Web3.sha3(text=sign_str))
         private_key = Account.decrypt(self.key_store, self.key_pwd)
         acct = Account.privateKeyToAccount(private_key)
@@ -266,7 +268,7 @@ class DewApi():
         res = requests.post(url, params=params)
         return self._format_result(res)
 
-    # orders = [[symbol, currency, period, is_bull, num]...]
+    # orders = [[symbol, currency, period, is_bull, num],[...]]
     def guess_trade_batch(self, orders=[]):
         url = self.get_url("guess/trade_batch")
         _orders = []
@@ -277,10 +279,10 @@ class DewApi():
                 'currency': order[1].upper(),
                 'period': order[2],
                 'type': 'BULL' if order[3] else 'BEAR',
-                'num': order[4]
+                'num': order[4],
             }
             _orders.append(_order)
-        params = {"orders": _orders}
+        params = {"orders": json.dumps(_orders)}
         self.eth_sign(params)
         self.md5_sign(params)
         # print_json(params)
