@@ -1,11 +1,21 @@
 # coding=utf-8
 import json
 from datetime import datetime, timedelta
+from json import JSONDecodeError
 
 import requests
 import time
 import hashlib
 from web3 import Account, Web3
+
+
+class DewApiException(Exception):
+    def __init__(self, err, msg):
+        self._err = err
+        self._msg = msg
+
+    def __str__(self):
+        return '%s: %s' % (self._err, self._msg)
 
 
 class DewApi():
@@ -27,10 +37,17 @@ class DewApi():
         }
 
     def _format_result(self, res):
-        obj = json.loads(res.text)
-        if obj['success']:
-            return obj['result']
-        return res.text
+        try:
+            obj = json.loads(res.text)
+            if obj['success']:
+                return obj['result']
+            else:
+                raise DewApiException('server error', res.text)
+        except JSONDecodeError:
+            raise DewApiException('JSONDecodeError', res.text)
+
+    def _to_json_param(self, req):
+        return json.dumps(req, separators=(',', ':'))
 
     def get_url(self, method):
         return 'https://api.dew.one/api/v1/' + method
@@ -52,7 +69,7 @@ class DewApi():
 
     def eth_sign(self, params):
         sign_str = self.get_sign_str(params, None)
-        print(sign_str)
+        # print(sign_str)
         message = Web3.toHex(Web3.sha3(text=sign_str))
         private_key = Account.decrypt(self.key_store, self.key_pwd)
         acct = Account.privateKeyToAccount(private_key)
@@ -136,11 +153,11 @@ class DewApi():
     def order_open_short(self, symbol, num, price):
         return self.order(symbol, True, True, num, price)
 
-    # 卖多
+    # 平多
     def order_close_long(self, symbol, num, price):
         return self.order(symbol, False, False, num, price)
 
-    # 卖空
+    # 平空
     def order_close_short(self, symbol, num, price):
         return self.order(symbol, False, True, num, price)
 
@@ -201,14 +218,14 @@ class DewApi():
         return self._format_result(res)
 
     # start_time end_time单位是天，不建议时间跨度太大，resolution单位是分钟
-    def get_kline_data(self, code='BTC', start_time=None, end_time=None, resolution=1):
+    def get_kline_data(self, symbol='BTC', start_time=None, end_time=None, resolution=1):
         url = 'https://hq.biz.dew.one/pub/quotation-new/kdata.jhtml'
         if start_time is None:
             start_time = datetime.now()
         if end_time is None:
             end_time = start_time
         params = {
-            'code': code,
+            'code': symbol,
             'resolution': resolution,
             'startTime': int(start_time.timestamp()),
             'endTime': int(end_time.timestamp()),
@@ -216,6 +233,7 @@ class DewApi():
             'lang': self.api_lang,
             'reqType': 'INIT'
         }
+        # print(params)
         res = requests.get(url, params=params, headers=self._pub_headers)
         return self._format_result(res)
 
@@ -282,10 +300,10 @@ class DewApi():
                 'num': order[4],
             }
             _orders.append(_order)
-        params = {"orders": json.dumps(_orders)}
+        params = {"orders": self._to_json_param(_orders)}
         self.eth_sign(params)
         self.md5_sign(params)
-        # print_json(params)
+        print_json(params)
         res = requests.post(url, params=params)
         return self._format_result(res)
 
